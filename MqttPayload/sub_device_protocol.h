@@ -11,15 +11,13 @@ extern "C"
 {
 #endif
 
-#include "platform_functions.h"
+#include "common_functions.h"
 #include "pando_endian.h"
-#include "pando_struct.h"
 
 #define MAGIC_HEAD_SUB_DEVICE 0x34
 #define PAYLOAD_TYPE_COMMAND 1
 #define PAYLOAD_TYPE_EVENT	 2
 #define PAYLOAD_TYPE_DATA	 3
-#define PAYLOAD_TYPE_COMMAND_WITH_FILE 4
 
 #define	TLV_TYPE_FLOAT64 1 
 #define TLV_TYPE_FLOAT32 2 
@@ -109,45 +107,43 @@ int init_sub_device(struct sub_device_base_params base_params);
 //在创建数据包或者事件包前，先创建好参数的信息区, 同时添加第一个参数，待信息区被create_event等函数成功使用后，要将信息区delete
 struct TLVs *create_params_block();
 
-//多次调用直至添加完所有参数
-int add_next_param(struct TLVs *params_block, uint16_t next_type, uint16_t next_length, void *next_value);
-
 //创建事件包，返回缓冲区，
 //数据发送完成后，要将返回的缓冲区delete掉
-struct sub_device_buffer *create_event_package(uint16_t event_num, uint16_t flags, uint16_t priority, struct TLVs *event_params);
-struct sub_device_buffer *create_command_package(uint16_t cmd_num, uint16_t flags, uint16_t priority, struct TLVs *cmd_params);
+struct sub_device_buffer *create_command_package(uint16_t flags);
+struct sub_device_buffer *create_event_package(uint16_t flags);
+struct sub_device_buffer *create_data_package(uint16_t flags);
 
-struct sub_device_buffer *create_data_package(uint16_t property_num, uint16_t flag, struct TLVs *data_params);
-int add_next_property(struct sub_device_buffer *data_package, uint16_t property_num, struct TLVs *next_data_params);
+int finish_package(struct sub_device_buffer *package_buf);
 
-struct sub_device_buffer *create_feedback_package();
+
+int add_next_property(struct sub_device_buffer *data_package, uint16_t property_num, 
+    struct TLVs *next_data_params);
+int add_command(struct sub_device_buffer *command_package, uint16_t command_num,
+    uint16_t priority, struct TLVs *command_params);
+int add_event(struct sub_device_buffer *event_package, uint16_t event_num,
+    uint16_t priority, struct TLVs *event_params);
+
 
 //解析命令包,command_body传出command_id、参数个数等信息,返回第一个参数的指针，用于get_tlv_param获取参数
-struct TLV *get_sub_device_command(struct sub_device_buffer *device_buffer, struct pando_command *command_body);
+struct TLVs *get_sub_device_command(struct sub_device_buffer *device_buffer, struct pando_command *command_body);
+struct TLVs *get_sub_device_event(struct sub_device_buffer *device_buffer, struct pando_event *event_body);
 
 //get data's property id and property num with property_body, return tlv param block
 struct TLVs *get_sub_device_property(struct sub_device_buffer *device_buffer, struct pando_property *property_body);
 
-uint16_t get_tlv_count(struct TLVs *params_block);
+
+//删除子设备缓冲区，如果为参数创建过信息区，还需要删除信息区
+void delete_device_package(struct sub_device_buffer *device_buffer);
+void delete_params_block(struct TLVs *params_block);
+
+int is_device_file_command(struct sub_device_buffer *device_buffer);
+
 
 /* if value type is uri or bytes, value point to the start address of data.
    else, value will match the type, make sure (void *) has enough space to 
    memcpy
 */
 struct TLV *get_tlv_param(struct TLV *params_in, uint16_t *type, uint16_t *length, void *value);
-uint16_t  get_tlv_type(struct TLV *params_in);
-uint16_t  get_tlv_len(struct TLV *params_in);
-struct TLV *  get_tlv_value(struct TLV *params_in, void *value);
-
-//删除子设备缓冲区，如果为参数创建过信息区，还需要删除信息区
-void delete_device_package(struct sub_device_buffer *device_buffer);
-
-void delete_params_block(struct TLVs *params_block);
-
-uint16_t get_sub_device_payloadtype(struct sub_device_buffer *package);
-
-int is_device_file_command(struct sub_device_buffer *device_buffer);
-
 
 // tlv operation functions, maybe need move to other file.
 // you must decode all the tlv params, otherwise can't decode next packet correctly.  
@@ -165,6 +161,8 @@ uint8_t     get_next_bool(struct TLVs *params);
 void        *get_next_uri(struct TLVs *params, uint16_t *length);
 void        *get_next_bytes(struct TLVs *params, uint16_t *length);
 
+//多次调用直至添加完所有参数
+int add_next_param(struct TLVs *params_block, uint16_t next_type, uint16_t next_length, void *next_value);
 int    add_next_uint8(struct TLVs *params, uint8_t next_value);
 int    add_next_uint16(struct TLVs *params, uint16_t next_value);
 int    add_next_uint32(struct TLVs *params, uint32_t next_value);

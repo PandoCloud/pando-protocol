@@ -11,7 +11,7 @@ extern "C"
 {
 #endif
 
-#include "platform_functions.h"
+#include "common_functions.h"
 
 //大小端转换函数
 uint16_t net16_to_host(uint16_t A);

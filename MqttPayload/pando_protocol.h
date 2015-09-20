@@ -13,8 +13,8 @@ extern "C"
 {
 #endif
 
-#include "platform_functions.h"
-#include "sub_device_protocol_tool.h"
+#include "common_functions.h"
+#include "sub_device_protocol.h"
 #include "pando_endian.h"
 
 #define MAX_PANDO_TOKEN_SIZE 16
@@ -110,17 +110,8 @@ int pando_protocol_get_sub_device_id(struct pando_buffer *buf, uint16_t *sub_dev
 int pando_protocol_set_sub_device_id(struct pando_buffer *buf, uint16_t sub_device_id);
 
 
-//网关发送文件的命令后，保存需要反馈的文件命令的序列号
-int is_file_feedback(uint32_t sequence);
-void save_file_sequence();
-
 /* get command type after gateway completes decoding the command from server. */
 uint16_t pando_protocol_get_payload_type(struct pando_buffer *pdbuf);
-
-/*  */
-int is_pando_file_command(struct pando_buffer *pdbuf);
-
-char *pando_protocol_get_uri(struct pando_buffer *pdbuf);
 
 #ifdef __cplusplus
 }

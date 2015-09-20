@@ -3,7 +3,7 @@
 //
 //  Create By TangWenhan On 14/12/24.
 
-#include "pando_protocol_tool.h"
+#include "pando_protocol.h"
 
 static int FUNCTION_ATTRIBUTE check_pdbin_header(struct mqtt_bin_header *bin_header);
 static int FUNCTION_ATTRIBUTE init_device_header(struct device_header *header, struct mqtt_bin_header *bin_header,
@@ -258,7 +258,7 @@ int FUNCTION_ATTRIBUTE is_file_feedback(uint32_t sequence)
 	return (sequence == file_cmd_sequence)?1:0;
 }
 
-
+#if 0
 char *FUNCTION_ATTRIBUTE pando_protocol_get_uri(struct pando_buffer *pdbuf)
 {
 	if (pdbuf == NULL)
@@ -293,7 +293,7 @@ char *FUNCTION_ATTRIBUTE pando_protocol_get_uri(struct pando_buffer *pdbuf)
 
 	return NULL;
 }
-
+#endif
 
 
 //pdbuf points to the buffer contains command from server ,it's big endian.

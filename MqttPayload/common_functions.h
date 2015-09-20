@@ -1,5 +1,5 @@
 //  Copyright (c) 2014 Pando. All rights reserved.
-//  Platform:   platform_functions.h
+//  Platform:   common_functions.h
 //
 //  Create By ZhaoWenwu On 15/05/17.
 
@@ -23,7 +23,7 @@ extern "C"
 
 #endif
 
-#include "pd_machine.h"
+#include "pando_machine.h"
 
 void show_package(uint8_t *buffer, uint16_t length);
 

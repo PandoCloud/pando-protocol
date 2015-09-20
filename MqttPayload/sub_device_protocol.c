@@ -3,7 +3,7 @@
 //
 //  Create By ZhaoWenwu On 15/01/24.
 
-#include "sub_device_protocol_tool.h"
+#include "sub_device_protocol.h"
 
 #define DEFAULT_TLV_BLOCK_SIZE 128
 
@@ -26,14 +26,63 @@ struct sub_device_base_params base_params;	//子设备的基本参数
 static uint16_t current_tlv_block_size = 0;	//当前信息区的大小，包含count的大小
 static uint16_t tlv_block_buffer_size;
 
+static uint16_t get_tlv_count(struct TLVs *params_block);
+static uint16_t  get_tlv_type(struct TLV *params_in);
+static uint16_t  get_tlv_len(struct TLV *params_in);
+static struct TLV *  get_tlv_value(struct TLV *params_in, void *value);
+static uint16_t get_sub_device_payloadtype(struct sub_device_buffer *package);
+
+
+
+static void FUNCTION_ATTRIBUTE *copy_return_next(void *dst, void *src, 
+    unsigned int src_len)
+{
+    pd_memcpy(dst, src, src_len);
+    dst = (char *)dst + src_len;
+    return dst;
+}
+
 static struct TLVs FUNCTION_ATTRIBUTE *get_next_property(struct pando_property *next_property, struct pando_property *property_body);
 static uint8_t FUNCTION_ATTRIBUTE is_tlv_need_length(uint16_t type);
 static uint8_t FUNCTION_ATTRIBUTE get_type_length(uint16_t type);
-/* the way to create event and command is exact same, except type */
-static struct sub_device_buffer * FUNCTION_ATTRIBUTE create_payload_package(
-    uint16_t event_num, uint16_t flags, 
-    uint16_t priority, struct TLVs *event_params,
-    uint16_t payload_type);
+
+static struct sub_device_buffer * FUNCTION_ATTRIBUTE create_package(
+    uint16_t flags, uint16_t payload_type)
+{
+	struct sub_device_buffer *data_buffer = NULL;
+	struct device_header *header = NULL;
+
+	data_buffer = (struct sub_device_buffer *)pd_malloc(sizeof(struct sub_device_buffer));
+    pd_memset(data_buffer, 0, sizeof(struct sub_device_buffer));
+    
+    //only create header
+	data_buffer->buffer_length = DEV_HEADER_LEN;
+	data_buffer->buffer = (uint8_t *)pd_malloc(data_buffer->buffer_length);
+	pd_memset(data_buffer->buffer, 0, data_buffer->buffer_length);
+
+	header = (struct device_header *)data_buffer->buffer;
+
+    if (payload_type == PAYLOAD_TYPE_COMMAND)
+    {
+        base_params.command_sequence++;
+        header->frame_seq = host32_to_net(base_params.command_sequence);
+    }
+    else if (payload_type == PAYLOAD_TYPE_EVENT)
+    {
+        base_params.event_sequence++;
+        header->frame_seq = host32_to_net(base_params.event_sequence);
+    }if (payload_type == PAYLOAD_TYPE_DATA)
+    {
+        base_params.data_sequence++;
+        header->frame_seq = host32_to_net(base_params.data_sequence);
+    }
+    
+	header->flags = host16_to_net(flags);
+	header->magic = MAGIC_HEAD_SUB_DEVICE;
+	header->payload_type = host16_to_net(payload_type);
+		
+	return data_buffer;
+}
 
 
 // we must maintain the position of tlv for next get operation
@@ -225,24 +274,6 @@ int FUNCTION_ATTRIBUTE add_next_param(struct TLVs *params_block, uint16_t next_t
 	return 0;
 }
 
-struct sub_device_buffer * FUNCTION_ATTRIBUTE create_event_package(
-    uint16_t event_num, uint16_t flags, 
-    uint16_t priority, struct TLVs *event_params)
-{
-    return create_payload_package(
-        event_num, flags, priority, event_params, 
-        PAYLOAD_TYPE_EVENT);
-}
-
-struct sub_device_buffer *create_command_package(uint16_t cmd_num, 
-    uint16_t flags, uint16_t priority, struct TLVs *cmd_params)
-
-{
-    return create_payload_package(
-        cmd_num, flags, priority, cmd_params, 
-        PAYLOAD_TYPE_COMMAND);
-}
-
 
 void FUNCTION_ATTRIBUTE delete_device_package(struct sub_device_buffer *device_buffer)
 {
@@ -269,48 +300,26 @@ void FUNCTION_ATTRIBUTE delete_params_block(struct TLVs *params_block)
     }
 }
 
-struct sub_device_buffer * FUNCTION_ATTRIBUTE create_data_package(uint16_t property_num, uint16_t flags, struct TLVs *data_params)
+struct sub_device_buffer * FUNCTION_ATTRIBUTE 
+    create_data_package(uint16_t flags)
 {
-	struct sub_device_buffer *data_buffer = NULL;
-	struct pando_property *single_property = NULL;
-	struct device_header *header = NULL;
-	uint16_t payload_length;
-	uint16_t payload_type = PAYLOAD_TYPE_DATA;
-
-	if (data_params == NULL)
-	{
-		pd_printf("Must create data package with params.\n");
-		return NULL;
-	}
-
-	data_buffer = (struct sub_device_buffer *)pd_malloc(sizeof(struct sub_device_buffer));
-
-	payload_length = sizeof(struct pando_property) + current_tlv_block_size - sizeof(struct TLVs);		//count 被重复包含了
-	data_buffer->buffer_length = payload_length + DEV_HEADER_LEN;
-	data_buffer->buffer = (uint8_t *)pd_malloc(data_buffer->buffer_length);
-	pd_memset(data_buffer->buffer, 0, data_buffer->buffer_length);
-
-	header = (struct device_header *)data_buffer->buffer;
-	single_property = (struct pando_property *)(data_buffer->buffer + DEV_HEADER_LEN);
-	
-	base_params.data_sequence++;
-
-	header->crc = 0x11;
-	header->flags = host16_to_net(flags);
-	header->frame_seq = host32_to_net(base_params.data_sequence);
-	header->magic = MAGIC_HEAD_SUB_DEVICE;
-	header->payload_len = host16_to_net(payload_length);
-	header->payload_type = host16_to_net(payload_type);
-
-	single_property->property_num = host16_to_net(property_num);
-
-	pd_memcpy(single_property->params, data_params, current_tlv_block_size);
-		
-	return data_buffer;
+    return create_package(flags, PAYLOAD_TYPE_DATA);
 }
 
+struct sub_device_buffer * FUNCTION_ATTRIBUTE 
+    create_event_package(uint16_t flags)
+{
+    return create_package(flags, PAYLOAD_TYPE_EVENT);
+}
 
-struct TLV * FUNCTION_ATTRIBUTE get_sub_device_command(struct sub_device_buffer *device_buffer, struct pando_command *command_body)
+struct sub_device_buffer * FUNCTION_ATTRIBUTE 
+    create_command_package(uint16_t flags)
+{
+    return create_package(flags, PAYLOAD_TYPE_COMMAND);
+}
+
+struct TLVs * FUNCTION_ATTRIBUTE get_sub_device_command(
+    struct sub_device_buffer *device_buffer, struct pando_command *command_body)
 {
 	struct pando_command *tmp_body = (struct pando_command *)(device_buffer->buffer + DEV_HEADER_LEN);
 
@@ -318,17 +327,13 @@ struct TLV * FUNCTION_ATTRIBUTE get_sub_device_command(struct sub_device_buffer 
 	struct device_header *head = (struct device_header *)device_buffer->buffer;
 	base_params.command_sequence = net32_to_host(head->frame_seq);
     command_body->sub_device_id = net16_to_host(tmp_body->sub_device_id);
-/*
-	if ((command_body->sub_device_id = net16_to_host(tmp_body->sub_device_id)) != base_params.sub_device_id)
-	{
-		pd_printf("Local sub device id: %d, receive a command to id : %d.\n", base_params.sub_device_id, command_body->sub_device_id);
-		return -1;
-	}*/
+
 	command_body->command_id = net16_to_host(tmp_body->command_id);
 	command_body->priority = net16_to_host(tmp_body->priority);
 	command_body->params->count = net16_to_host(tmp_body->params->count);
 	
-	return (struct TLV *)(device_buffer->buffer + DEV_HEADER_LEN + sizeof(struct pando_command));
+	return (struct TLVs *)(device_buffer->buffer + DEV_HEADER_LEN 
+        + sizeof(struct pando_command) - sizeof(struct TLVs));
 }
 
 uint16_t get_tlv_count(struct TLVs *params_block)
@@ -530,36 +535,6 @@ struct TLVs * FUNCTION_ATTRIBUTE get_sub_device_property(
 	return get_next_property(tmp_body, property_body);
 }
 
-
-struct sub_device_buffer * FUNCTION_ATTRIBUTE create_feedback_package()
-{
-	struct sub_device_buffer *device_buffer = NULL;
-	struct pando_event *event = NULL;
-	struct device_header *header;
-	uint16_t payload_length;
-	uint16_t payload_type = PAYLOAD_TYPE_EVENT;
-
-	device_buffer = (struct sub_device_buffer *)pd_malloc(sizeof(struct sub_device_buffer));
-
-	payload_length = 0;
-	device_buffer->buffer = (uint8_t *)pd_malloc(DEV_HEADER_LEN);		
-	pd_memset(device_buffer->buffer, 0, DEV_HEADER_LEN);
-
-	device_buffer->buffer_length = DEV_HEADER_LEN;
-
-	header = (struct device_header *)device_buffer->buffer;
-	base_params.event_sequence++;
-
-	header->magic = MAGIC_HEAD_SUB_DEVICE;
-	header->crc = 0x11;
-	header->frame_seq = host32_to_net(base_params.command_sequence);
-	header->flags = host16_to_net(0xaabb);
-	header->payload_len = host16_to_net(payload_length);
-	header->payload_type = host16_to_net(payload_type);
-
-	return device_buffer;
-}
-
 uint16_t FUNCTION_ATTRIBUTE get_sub_device_payloadtype(struct sub_device_buffer *package)
 {
     struct device_header *head;
@@ -641,45 +616,127 @@ uint8_t FUNCTION_ATTRIBUTE get_type_length(uint16_t type)
     return -1;
 }
 
+/* malloc a new block to save old buffer and new property, and update the package length */
 int FUNCTION_ATTRIBUTE add_next_property(struct sub_device_buffer *data_package, uint16_t property_num, struct TLVs *next_data_params)
 {
-    uint8_t *new_buffer = NULL;
+    uint8_t *old_buffer = NULL;
     uint8_t *position = NULL;
-    struct device_header *hdr = (struct device_header *)data_package->buffer;
-    uint16_t payload_len = 0;
+    uint16_t old_len = 0;
+    uint16_t subdevice_id;
     
-    uint16_t append_len = sizeof(struct pando_property) + current_tlv_block_size - sizeof(struct TLVs);
-    
-
     if (data_package == NULL)
     {
         return -1;
-    }
+    }    
+
+    old_buffer = data_package->buffer;
+    old_len = data_package->buffer_length;
 
     /* append payload length */
-    payload_len = net16_to_host(hdr->payload_len);
-    data_package->buffer_length += append_len;
-    payload_len += append_len;
-    hdr->payload_len = host16_to_net(payload_len);
+    data_package->buffer_length += (sizeof(struct pando_property) 
+        + current_tlv_block_size - sizeof(struct TLVs));    
+    data_package->buffer = (uint8_t *)pd_malloc(data_package->buffer_length);
+    pd_memset(data_package->buffer, 0, data_package->buffer_length);
+
+    /* copy old content and new property */
+    position = copy_return_next(data_package->buffer, old_buffer, old_len);    
+
+    subdevice_id = 0;
+    position = copy_return_next(position, &subdevice_id, sizeof(subdevice_id));
     
-    new_buffer = (uint8_t *)pd_malloc(data_package->buffer_length);
-    pd_memset(new_buffer, 0, data_package->buffer_length);
-
-    /* copy buffer content, skip subdev id, copy property num and tlv params */
-    position = new_buffer + data_package->buffer_length - append_len;
-    pd_memcpy(new_buffer, data_package->buffer, data_package->buffer_length);
-
-    position += 2;  //sub device id
     property_num = host16_to_net(property_num);
-    pd_memcpy(position, &property_num, sizeof(property_num));
+    position = copy_return_next(position, &property_num, sizeof(property_num));
     
-    position += sizeof(property_num);
     pd_memcpy(position, next_data_params, current_tlv_block_size);  
-    pd_free(data_package->buffer);
-    data_package->buffer = new_buffer;
+    pd_free(old_buffer);
 
     return 0;
 }
+
+int FUNCTION_ATTRIBUTE add_command(struct sub_device_buffer *command_package, 
+    uint16_t command_num, uint16_t priority, struct TLVs *command_params)
+{
+    uint8_t *old_buffer = NULL;
+    uint8_t *position = NULL;
+    uint16_t old_len = 0;
+    uint16_t subdevice_id;
+    
+    if (command_package == NULL)
+    {
+        return -1;
+    }    
+
+    old_buffer = command_package->buffer;
+    old_len = command_package->buffer_length;
+
+    /* append payload length */
+    command_package->buffer_length += (sizeof(struct pando_property) 
+        + current_tlv_block_size - sizeof(struct TLVs));    
+    command_package->buffer = (uint8_t *)pd_malloc(command_package->buffer_length);
+    pd_memset(command_package->buffer, 0, command_package->buffer_length);
+
+    /* copy old content and new property */
+    position = copy_return_next(command_package->buffer, old_buffer, old_len);    
+
+    subdevice_id = 0;
+    position = copy_return_next(position, &subdevice_id, sizeof(subdevice_id));
+    
+    command_num = host16_to_net(command_num);
+    position = copy_return_next(position, &command_num, sizeof(command_num));
+
+    priority = host16_to_net(priority);
+    position = copy_return_next(position, &priority, sizeof(priority));
+    pd_memcpy(position, command_params, current_tlv_block_size);  
+    pd_free(old_buffer);
+
+    return 0;
+}
+
+int FUNCTION_ATTRIBUTE add_event(struct sub_device_buffer *event_package, 
+    uint16_t event_num, uint16_t priority, struct TLVs *event_params)
+{
+    uint8_t *old_buffer = NULL;
+    uint8_t *position = NULL;
+    uint16_t old_len = 0;
+    uint16_t subdevice_id;
+    
+    if (event_package == NULL)
+    {
+        return -1;
+    }    
+
+    old_buffer = event_package->buffer;
+    old_len = event_package->buffer_length;
+
+    /* append payload length */
+    event_package->buffer_length += (sizeof(struct pando_property) 
+        + current_tlv_block_size - sizeof(struct TLVs));    
+    event_package->buffer = (uint8_t *)pd_malloc(event_package->buffer_length);
+    pd_memset(event_package->buffer, 0, event_package->buffer_length);
+
+    /* copy old content and new property */
+    position = copy_return_next(event_package->buffer, old_buffer, old_len);    
+
+    subdevice_id = 0;
+    position = copy_return_next(position, &subdevice_id, sizeof(subdevice_id));
+    
+    event_num= host16_to_net(event_num);
+    position = copy_return_next(position, &event_num, sizeof(event_num));
+
+    priority = host16_to_net(priority);
+    position = copy_return_next(position, &priority, sizeof(priority));
+    pd_memcpy(position, event_params, current_tlv_block_size);  
+    pd_free(old_buffer);
+
+    return 0;
+
+}
+
+int FUNCTION_ATTRIBUTE finish_package(struct sub_device_buffer *package_buf)
+{
+    return 0;
+}
+
 
 struct TLVs * FUNCTION_ATTRIBUTE get_next_property(
     struct pando_property *next_property, struct pando_property *property_body)
@@ -706,52 +763,6 @@ int FUNCTION_ATTRIBUTE is_device_file_command(struct sub_device_buffer *device_b
     {
         return 0;
     }
-}
-
-struct sub_device_buffer * FUNCTION_ATTRIBUTE create_payload_package(
-    uint16_t event_num, uint16_t flags, 
-    uint16_t priority, struct TLVs *event_params,
-    uint16_t type)
-{
-	struct sub_device_buffer *device_buffer = NULL;
-	struct pando_event *event = NULL;
-	struct device_header *header;
-	uint16_t payload_length;
-	uint16_t payload_type = type;
-
-	device_buffer = (struct sub_device_buffer *)pd_malloc(sizeof(struct sub_device_buffer));
-	if (event_params != NULL)
-	{
-		payload_length = sizeof(struct pando_event) + current_tlv_block_size - sizeof(struct TLVs);		//由于pando_event已包含一个tlvs的长度，需要减掉
-		device_buffer->buffer = (uint8_t *)pd_malloc(DEV_HEADER_LEN + payload_length);
-		pd_memset(device_buffer->buffer, 0, DEV_HEADER_LEN + payload_length);
-		pd_memcpy(device_buffer->buffer + DEV_HEADER_LEN + sizeof(struct pando_event) - sizeof(struct TLVs) , 
-			event_params, current_tlv_block_size);
-	} 
-	else
-	{
-		payload_length = sizeof(struct pando_event);
-		device_buffer->buffer = (uint8_t *)pd_malloc(DEV_HEADER_LEN + payload_length);		
-		pd_memset(device_buffer->buffer, 0, DEV_HEADER_LEN + payload_length);
-	}
-	device_buffer->buffer_length = DEV_HEADER_LEN + payload_length;
-
-	header = (struct device_header *)device_buffer->buffer;
-	event = (struct pando_event *)(device_buffer->buffer + DEV_HEADER_LEN);
-	base_params.event_sequence++;
-
-	header->magic = MAGIC_HEAD_SUB_DEVICE;
-	header->crc = 0x11;
-	header->frame_seq = host32_to_net(base_params.event_sequence);
-	header->flags = host16_to_net(flags);
-	header->payload_len = host16_to_net(payload_length);
-	header->payload_type = host16_to_net(payload_type);
-
-	event->event_num = host16_to_net(event_num);
-    event->priority = host16_to_net(priority);
-	
-	return device_buffer;
-
 }
 
 
