@@ -64,16 +64,17 @@ void FUNCTION_ATTRIBUTE decode_data(struct pando_buffer *buf, uint16_t payload_t
     
     // 网关向子设备传递数据包,如果是向子设备发包，请用对应的设备send函数
     struct sub_device_buffer *device_buffer = pd_malloc(sizeof(struct sub_device_buffer));
-    device_buffer->buffer_length = buf->buff_len - buf->offset;
+    device_buffer->buffer_length = pando_get_package_length(buf);
     device_buffer->buffer = pd_malloc(device_buffer->buffer_length);
 
+ 
     // 从网关数据包中获取子设备数据包
-    pd_memcpy(device_buffer->buffer, buf->buffer + buf->offset, device_buffer->buffer_length);
+    pd_memcpy(device_buffer->buffer, pando_get_package_begin(buf), device_buffer->buffer_length);
 
     // 获取数据完成，释放网关缓冲区
     pando_buffer_delete(buf);
 
-
+    show_package(device_buffer->buffer, device_buffer->buffer_length);
 
     
 
@@ -84,37 +85,42 @@ void FUNCTION_ATTRIBUTE decode_data(struct pando_buffer *buf, uint16_t payload_t
     uint16_t tlv_type, tlv_length;
     uint8_t *value = pd_malloc(100);
     struct TLV *param = NULL;
-	// just make property_block not NULL 
-	struct TLVs *property_block = (struct TLVs *)buf_end;
+    
+	struct TLVs *property_block;
 	
 	// 2.子设备获取命令参数	
     
-    
-	while(property_block != NULL)
+    uint32_t param1 = 0;
+    uint8_t param2 = 0;
+    char *param_bytes = NULL;
+	while(1)
 	{
         property_block = get_sub_device_property(device_buffer, &data_body);
-        
+
+        if (property_block == NULL)
+        {
+            pd_printf("reach end of buffer\n");
+            break;
+        }
         pd_printf("count: %d\n", data_body.params->count);
-        i = data_body.params->count;
-
-        for (; i > 0; i--)
-    	{
-            /* the body of for is the old type to get tlv,
-               you can use  get_next_uint8(TLVs)...bala bala instead for recycle.
-               You must carefully count the param number you have handled.
-               example:
-               uint8_t param1 = get_next_uint8(property_block);
-               uint32_t param2 = get_next_uint32(property_block);
-               char *param_bytes = get_next_bytes(property_block, &length);
-               pd_memcpy(bytes_buf, param_bytes, length);
-            */
-
-            param = (uint8_t *)property_block + sizeof(property_block->count);
-    		param = get_tlv_param(property_block, &tlv_type, &tlv_length, value);
-
-    		pd_printf("params: type: %02x, length: %02x, \n", tlv_type, tlv_length);
-
-    		show_package(value, tlv_length);
+        
+        if (data_body.params->count == 3)
+        {
+            param1 = get_next_uint32(property_block);
+            show_package(&param1, sizeof(param1));
+            param2 = get_next_uint8(property_block);
+            show_package(&param2, sizeof(param2));
+            param_bytes = get_next_bytes(property_block, &tlv_length);
+            pd_memcpy(value, param_bytes, tlv_length);
+            show_package(value, tlv_length);
+        }
+        else if (data_body.params->count == 2)
+        {
+            param2 = get_next_uint8(property_block);
+            show_package(&param2, sizeof(param2));
+            param_bytes = get_next_bytes(property_block, &tlv_length);
+            pd_memcpy(value, param_bytes, tlv_length);
+            show_package(value, tlv_length);
         }
     }
 
@@ -132,13 +138,13 @@ void FUNCTION_ATTRIBUTE decode_command(struct pando_buffer *buf, uint16_t payloa
 
     // 网关向子设备传递数据包,如果是向子设备发包，请用对应的设备send函数
     struct sub_device_buffer *device_buffer = pd_malloc(sizeof(struct sub_device_buffer));
-    device_buffer->buffer_length = buf->buff_len - buf->offset;
+    device_buffer->buffer_length = pando_get_package_length(buf);
     device_buffer->buffer = pd_malloc(device_buffer->buffer_length);
 
-
+ 
     // 从网关数据包中获取子设备数据包
-    pd_memcpy(device_buffer->buffer, buf->buffer + buf->offset, device_buffer->buffer_length);
-
+    pd_memcpy(device_buffer->buffer, pando_get_package_begin(buf), device_buffer->buffer_length);
+ 
     // 获取数据完成，释放网关缓冲区
     pando_buffer_delete(buf);
 
@@ -149,24 +155,21 @@ void FUNCTION_ATTRIBUTE decode_command(struct pando_buffer *buf, uint16_t payloa
 	struct pando_command cmd_body;
 	// 1.子设备解命令包, 返回参数区的起始位置 
 	struct TLVs *cmd_params_block = get_sub_device_command(device_buffer, &cmd_body);
-    struct TLV *cmd_param = NULL;
-	pd_printf("sub id %d, cmd num %d, pri %d, count: %d\n", 
+	pd_printf("sub id %02x, cmd num %02x, pri %02x, count: %d\n", 
         cmd_body.sub_device_id, cmd_body.command_id,
         cmd_body.priority, cmd_body.params->count);
 	
 	// 2.子设备获取命令参数
-	int i = cmd_body.params->count;
-	uint16_t tlv_type, tlv_length;
+	uint16_t tlv_length;
     uint8_t *value = pd_malloc(100);
-	for (; i > 0; i--)
-	{
-        /* you can use  get_uint8()...bala bala */
-		cmd_param = get_tlv_param(cmd_param, &tlv_type, &tlv_length, value);
 
-		pd_printf("params: type: %02x, length: %02x, \n", tlv_type, tlv_length);
-
-		show_package(value, tlv_length);
-    }
+    uint8_t param1 = get_next_uint8(cmd_params_block);
+    show_package(&param1, sizeof(param1));
+    uint32_t param2 = get_next_uint32(cmd_params_block);
+    show_package(&param2, sizeof(param2));
+    char *param_bytes = get_next_bytes(cmd_params_block, &tlv_length);
+    pd_memcpy(value, param_bytes, tlv_length);
+    show_package(value, tlv_length);
 
     pd_free(value);
 	// 3. 删除子设备缓冲区
@@ -303,6 +306,13 @@ struct sub_device_buffer * FUNCTION_ATTRIBUTE construct_sub_device_event()
 	}
 	
 	if (add_next_param(params_block, TLV_TYPE_UINT8, sizeof(event_param2), &event_param2))
+	{
+		delete_params_block(params_block);
+		pd_printf("Add next tlv param failed.\n");
+		return NULL;
+	}
+
+    if (add_next_param(params_block, TLV_TYPE_UINT32, sizeof(event_param1), &event_param1))
 	{
 		delete_params_block(params_block);
 		pd_printf("Add next tlv param failed.\n");
@@ -596,7 +606,14 @@ int main(int argc, char** argv)
 	unsigned char readbuf[500];
     char payload_type_c[] = {'c', 'e', 'd'};
     
-	
+    bin_buf = construct_data_package_to_server(&payload_type);
+    decode_data(bin_buf, PAYLOAD_TYPE_DATA);
+
+    /* command test, event is same as command except the type */
+    bin_buf = constuct_event_package_to_server(&payload_type);
+    decode_command(bin_buf, PAYLOAD_TYPE_COMMAND);
+    return 0;
+    
 	if (argc < 2)
 		usage();
 	

@@ -31,6 +31,7 @@ static uint16_t  get_tlv_type(struct TLV *params_in);
 static uint16_t  get_tlv_len(struct TLV *params_in);
 static struct TLV *  get_tlv_value(struct TLV *params_in, void *value);
 static uint16_t get_sub_device_payloadtype(struct sub_device_buffer *package);
+static struct TLV *get_tlv_param(struct TLV *params_in, uint16_t *type, uint16_t *length, void *value);
 
 
 
@@ -123,7 +124,7 @@ static void FUNCTION_ATTRIBUTE get_value(struct TLVs *params, void *val)
     uint16_t type = 0;
     uint16_t len = 0;
 
-    struct TLV* params_in = get_current_tlv(params);    
+    struct TLV* params_in = get_current_tlv(params);  
     get_tlv_param(params_in, &type, &len, val);
     cal_current_position(type, len);
 }
@@ -734,6 +735,26 @@ int FUNCTION_ATTRIBUTE add_event(struct sub_device_buffer *event_package,
 
 int FUNCTION_ATTRIBUTE finish_package(struct sub_device_buffer *package_buf)
 {
+    struct device_header *header;
+
+    header = (struct device_header *)package_buf->buffer;
+    header->payload_len = host16_to_net(package_buf->buffer_length
+        - DEV_HEADER_LEN);
+    header->crc = (header->payload_len) >> 8;
+
+    if (header->payload_type == PAYLOAD_TYPE_DATA)
+    {
+        header->frame_seq = host32_to_net(base_params.data_sequence);
+    }
+    else if (header->payload_type == PAYLOAD_TYPE_COMMAND)
+    {
+        header->frame_seq = host32_to_net(base_params.command_sequence);
+    }
+    else if (header->payload_type == PAYLOAD_TYPE_EVENT)
+    {
+        header->frame_seq = host32_to_net(base_params.event_sequence);
+    }
+    
     return 0;
 }
 
@@ -772,7 +793,7 @@ int FUNCTION_ATTRIBUTE is_device_file_command(struct sub_device_buffer *device_b
 uint8_t FUNCTION_ATTRIBUTE get_next_uint8(struct TLVs *params)
 {
     uint8_t val = 0;
-    get_value(params, &val);    
+    get_value(params, &val);
     return val;
 }
 
@@ -923,10 +944,10 @@ int    add_next_bool(struct TLVs *params, uint8_t next_value)
 
 int    add_next_uri(struct TLVs *params, uint16_t length, void *next_value)
 {
-    return add_next_param(params, TLV_TYPE_URI, length, &next_value);
+    return add_next_param(params, TLV_TYPE_URI, length, next_value);
 }
 
 int    add_next_bytes(struct TLVs *params, uint16_t length, void *next_value)
 {
-    return add_next_param(params, TLV_TYPE_BYTES, length, &next_value);
+    return add_next_param(params, TLV_TYPE_BYTES, length, next_value);
 }

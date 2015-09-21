@@ -322,3 +322,14 @@ int FUNCTION_ATTRIBUTE is_pando_file_command(struct pando_buffer *pdbuf)
     }
 }
 
+uint8_t FUNCTION_ATTRIBUTE *pando_get_package_begin(struct pando_buffer *buf)
+{
+    return (buf->buffer + buf->offset);
+}
+uint16_t FUNCTION_ATTRIBUTE pando_get_package_length(struct pando_buffer *buf)
+{
+    return (buf->buff_len - buf->offset);
+}
+
+
+

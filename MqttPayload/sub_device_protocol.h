@@ -139,11 +139,6 @@ void delete_params_block(struct TLVs *params_block);
 int is_device_file_command(struct sub_device_buffer *device_buffer);
 
 
-/* if value type is uri or bytes, value point to the start address of data.
-   else, value will match the type, make sure (void *) has enough space to 
-   memcpy
-*/
-struct TLV *get_tlv_param(struct TLV *params_in, uint16_t *type, uint16_t *length, void *value);
 
 // tlv operation functions, maybe need move to other file.
 // you must decode all the tlv params, otherwise can't decode next packet correctly.  

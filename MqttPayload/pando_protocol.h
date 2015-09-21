@@ -73,12 +73,7 @@ struct protocol_base
  * 成功返回0，错误返回 -1 */
 int pando_protocol_init(struct protocol_base init_params);
 
-/* Create buffer to receive a package from sub device,
-   which will be sent to server after encoding.
-*/
-struct pando_buffer *pando_create_buffer_to_server();
-struct pando_buffer *pando_create_buffer_to_subdevice();
-char *pando_get_package_begin(struct pando_buffer *buf);
+uint8_t *pando_get_package_begin(struct pando_buffer *buf);
 uint16_t pando_get_package_length(struct pando_buffer *buf);
 
 
