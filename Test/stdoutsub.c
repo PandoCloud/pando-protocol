@@ -156,7 +156,7 @@ void FUNCTION_ATTRIBUTE decode_command(struct pando_buffer *buf, uint16_t payloa
 	// 1.子设备解命令包, 返回参数区的起始位置 
 	struct TLVs *cmd_params_block = get_sub_device_command(device_buffer, &cmd_body);
 	pd_printf("sub id %02x, cmd num %02x, pri %02x, count: %d\n", 
-        cmd_body.sub_device_id, cmd_body.command_id,
+        cmd_body.sub_device_id, cmd_body.command_num,
         cmd_body.priority, cmd_body.params->count);
 	
 	// 2.子设备获取命令参数

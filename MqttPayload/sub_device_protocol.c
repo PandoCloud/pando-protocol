@@ -1,7 +1,14 @@
-//  Copyright (c) 2015 Pando. All rights reserved.
-//  PtotoBuf:   ProtocolBuffer.h
-//
-//  Create By ZhaoWenwu On 15/01/24.
+/*******************************************************
+ * File name：sub_device_protocol.c
+ * Author:    Zhao Wenwu
+ * Versions:  0.1
+ * Description: APIs for sub device.
+ * History:
+ *   1.Date:
+ *     Author:
+ *     Modification:    
+ *********************************************************/
+
 
 #include "sub_device_protocol.h"
 
@@ -22,15 +29,14 @@ struct property_indicator
 
 static struct property_indicator s_current_property;
 static struct params_block_indicator s_current_param;
-struct sub_device_base_params base_params;	//子设备的基本参数
-static uint16_t current_tlv_block_size = 0;	//当前信息区的大小，包含count的大小
-static uint16_t tlv_block_buffer_size;
+struct sub_device_base_params base_params;	//Basic param of sub device
+static uint16_t current_tlv_block_size = 0;	//Current params block size, include count.
+static uint16_t tlv_block_buffer_size;      //Size of buffer pre-malloced to contain params block.
 
 static uint16_t get_tlv_count(struct TLVs *params_block);
 static uint16_t  get_tlv_type(struct TLV *params_in);
 static uint16_t  get_tlv_len(struct TLV *params_in);
 static struct TLV *  get_tlv_value(struct TLV *params_in, void *value);
-static uint16_t get_sub_device_payloadtype(struct sub_device_buffer *package);
 static struct TLV *get_tlv_param(struct TLV *params_in, uint16_t *type, uint16_t *length, void *value);
 
 
@@ -155,7 +161,7 @@ struct TLVs * FUNCTION_ATTRIBUTE create_params_block()
 	struct TLVs *tlv_block = NULL;
     uint8_t need_length;
 
-	current_tlv_block_size = 0;		//确保每次新建tlv信息区时，信息区大小的计数都是正确的
+	current_tlv_block_size = 0;
 
     tlv_block_buffer_size = DEFAULT_TLV_BLOCK_SIZE;
 	tlv_block = (struct TLVs *)pd_malloc(tlv_block_buffer_size);
@@ -329,7 +335,7 @@ struct TLVs * FUNCTION_ATTRIBUTE get_sub_device_command(
 	base_params.command_sequence = net32_to_host(head->frame_seq);
     command_body->sub_device_id = net16_to_host(tmp_body->sub_device_id);
 
-	command_body->command_id = net16_to_host(tmp_body->command_id);
+	command_body->command_num = net16_to_host(tmp_body->command_num);
 	command_body->priority = net16_to_host(tmp_body->priority);
 	command_body->params->count = net16_to_host(tmp_body->params->count);
 	
