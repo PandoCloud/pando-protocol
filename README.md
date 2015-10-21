@@ -1,2 +1,13 @@
-# pando-protocol
-pando binary protocol for iot devices with C implementation.
+# Pando Protocol
+
+## Introduction
+Pando binary protocol for iot devices with C implementation.   
+This protocol used to transform information between sever and iot devices, costs resource as little as possible.   
+
+## Usage
+What to do with these APIs. 
+
+## Design
+How to orgnize data into package, and why.   
+[chinese-documents](中文设计文档)  
+[english-documents](English Design Documents)  
