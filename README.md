@@ -9,5 +9,5 @@ What to do with these APIs.
 
 ## Design
 How to orgnize data into package, and why.   
-[chinese-documents](中文设计文档)  
-[english-documents](English Design Documents)  
+[中文设计文档](chinese-documents)  
+[English Design Documents](english-documents)  
