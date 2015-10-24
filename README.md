@@ -9,5 +9,5 @@ What to do with these APIs.
 
 ## Design
 How to orgnize data into package, and why.   
-[中文设计文档](chinese-documents)  
-[English Design Documents](https://github.com/PandoCloud/pando-protocol/wiki/english-document)  
+[中文设计文档](https://github.com/PandoCloud/pando-protocol/wiki/Chinese-documents)  
+[English Design Documents](https://github.com/PandoCloud/pando-protocol/wiki/English-documents)  
