@@ -8,6 +8,9 @@ Pando protocol是Pando物联网解决方案中的协议部分。
 
 Pando协议定义了一套简单、统一的通信流程与数据包格式，实现不同厂商的设备、云平台之间通信的兼容性。
 
+## Pando协议的内容
+参见[Pando协议的内容](https://github.com/PandoCloud/pando-protocol/wiki/chinese-documents)
+
 ## 快速开始
 
 本项目描述了协议的设计与内容，协议在不同平台的实现在项目[pando-embedded-framework](https://github.com/PandoCloud/pando-embedded-framework)。可通过该项目的linux实现，结合本项目的文档，快速了解协议的细节。
