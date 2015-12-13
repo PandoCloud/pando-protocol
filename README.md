@@ -130,7 +130,7 @@ flag：用于未来协议扩展
 网关的程序需要实现一个虚拟的硬件子设备，来实现这些通用指令和事件。   
 
 ## 数据结构  
-[C语言-MQTT实现](c-mqtt-implementation.md)  
+[C语言-MQTT实现](doc/c-mqtt-implementation.md)  
 
 ## 快速开始
 
