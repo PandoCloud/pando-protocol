@@ -15,6 +15,7 @@ Pando protocol是Pando物联网解决方案中的协议部分。
 * [数据结构](#数据结构)
 * [快速开始](#快速开始)
 * [贡献项目](#贡献项目)
+* [其他索引](#其他索引)
 
 ## Pando协议的目标
 
@@ -140,3 +141,9 @@ flag：用于未来协议扩展
 * **反馈问题**：我们鼓励通过[提交Issue](https://github.com/PandoCloud/pando-protocol/issues/new)的方式反馈您在了解协议过程中遇到的疑问或问题。
 * **提出建议**：同样，可以通过[提交Issue](https://github.com/PandoCloud/pando-protocol/issues/new)向我们提供协议改进意见，同时可以通过加入我们的讨论QQ群（488074716）或者参加我们主办的线下物联网技术沙龙一起讨论。
 * **贡献代码**：非常欢迎有能力的朋友一起参与Pando物联网平台的开发，一起构建开放、免费、开源的物联网解决方案。请按照[贡献流程](./docs/zh-cn/contribution/work-flow.md)参与项目开发。
+
+## 其他索引  
+添加索引便于统一查找  
+[平台通用的指令和事件](doc/universal-event-and-command.md)  
+[C语言-MQTT实现](doc/c-mqtt-implementation.md)  
+[http api](doc/http-api.md)  

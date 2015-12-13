@@ -13,20 +13,20 @@ payload length：表示数据包携带的关键信息的长度
 1. mqtt协议连接时需要一个client id作为连接标识符，此时使用了device id作为client id。一个device只会创建一条mqtt连接，因此通过这条连接发送的数据包就隐含着device id。这种方式最多可以减少8字节的数据包开销  
 2. mqtt协议头部中有topic字段，这个字段可用来标识payload type，现在使用c,d,e分别表示command, data, event  
 3. mqtt头部中的有该协议本身的payload length字段。mqtt payload length = 服务器header + pando payload length。而下图中服务器header的长度是固定的，因此从mqtt的length中可以计算出pando payload length。这样又可以减少2字节的开销    
-![接入设备-服务器](https://github.com/PandoCloud/pando-protocol/blob/master/doc/server-access.jpg)
+![接入设备-服务器](images/server-access.jpg)
  
 #### 硬件子设备header  
-![](https://github.com/PandoCloud/pando-protocol/blob/master/doc/access-hardware.jpg)  
+![](images/access-hardware.jpg)  
 
 #### Payload  
 * **指令**  
-![](https://github.com/PandoCloud/pando-protocol/blob/master/doc/command-payload.jpg)
+![](images/command-payload.jpg)
 * **事件**  
-![](https://github.com/PandoCloud/pando-protocol/blob/master/doc/event-payload.jpg)
+![](images/event-payload.jpg)
 * **数据**
-![](https://github.com/PandoCloud/pando-protocol/blob/master/doc/data-payload.jpg)
+![](images/data-payload.jpg)
 * **参数**  
-![](https://github.com/PandoCloud/pando-protocol/blob/master/doc/tlv.jpg)
+![](images/tlv.jpg)
 
 ### 2. 数据结构
     
