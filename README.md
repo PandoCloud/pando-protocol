@@ -2,7 +2,7 @@
 
 Pando protocol是Pando物联网解决方案中的协议部分。
 
-[English Document](https://github.com/PandoCloud/pando-protocol/wiki/English-documents)
+[English Document](doc/english-document)
 
 ## Pando协议的目标
 
