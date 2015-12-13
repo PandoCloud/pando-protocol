@@ -47,7 +47,7 @@ Pando协议定义了一套简单、统一的通信流程与数据包格式，实
 ## 三、 基本协议流程
 本节介绍设备在已连网的情况下，如何与服务器完成注册、登陆认证、接入传输数据等流程。 
 总体流程示意如下图所示  
-![](image/gateway-flow.png) 
+![](images/gateway-flow.png) 
  
 ### 1. 联网：   
 开始所有流程前，必须保证设备已接入internet。  
@@ -59,7 +59,7 @@ Pando协议定义了一套简单、统一的通信流程与数据包格式，实
 
 ### 3. 登陆  
 1. 查看本地配置，获取device id及device secret。如果没有，返回至注册流程。 
-2. 通过[http api](http-api)向服务器验证device id和device secret。如果成功，服务器会返回device token以及access address；如果服务器返回失败，说明device id和device secret已失效，需要删除本地device id和device secret，重新进入注册流程。如果是服务器不可用或者超时，则一直重试，直到成功为止。  
+2. 通过[http api](doc/http-api.md)向服务器验证device id和device secret。如果成功，服务器会返回device token以及access address；如果服务器返回失败，说明device id和device secret已失效，需要删除本地device id和device secret，重新进入注册流程。如果是服务器不可用或者超时，则一直重试，直到成功为止。  
 
 ### 4. 接入    
 1. 接入流程的细节与通信协议有关， 设备以指定的通信协议连接至服务器(access address)。  
@@ -79,7 +79,7 @@ Pando协议定义了一套简单、统一的通信流程与数据包格式，实
 目前仅使用了crc校验确定数据的完整，采用sequence、ack的方式保证数据的可靠到达。
 如下图所示，接收方需要回复ack包进行确认，要求回复的sequence与收到的一致。如果发送方没有收到ack，则重发数据包，尝试3次后不再重传。  
 指令、状态、事件拥有独立的sequence，每发一个包递增1，重传数据包时sequence不变。  
-![](image/hardeware-data-seq.png)     
+![](images/hardeware-data-seq.png)     
 实际情况还是需要一种简单，可移植，开销小的通信机制保证数据的完整性【待实现】。  
   
 * **设备和服务器之间**  
@@ -113,7 +113,7 @@ flag：用于未来协议扩展
 其中，转换辅助信息即可，不需要转换关键信息。因为网关无需理解关键信息，只要保证关键信息安全可靠的送达服务器。  
 不转换关键信息，可一定程度较少网关的开销。  
 如下图所示，数据包传输的过程中，网关进行二进制和mqtt数据包的转换。    
-![](image/data-convert.png)   
+![](images/data-convert.png)   
 
 
 ### 4. 设备与硬件子设备的形式  
@@ -123,7 +123,7 @@ flag：用于未来协议扩展
   * 选择3G模块作为接入internet的通道时，由于3G模块上无法运行自己的软件，只能通过AT指令进行通信。此时选择STM32作为硬件层设备，同时需要在上面运行接入设备的软件。  
 
 ### 5. 平台通用的指令和事件  
-服务器会操作维护网关的一些状态，为了实现这个目的，定义了[平台通用的指令和事件](universal-event-and-command) 。  
+服务器会操作维护网关的一些状态，为了实现这个目的，定义了[平台通用的指令和事件](doc/universal-event-and-command.md) 。  
 网关的程序需要实现一个虚拟的硬件子设备，来实现这些通用指令和事件。   
 
 
