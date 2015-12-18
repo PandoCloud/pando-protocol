@@ -11,7 +11,7 @@ payload type：表示数据包类型
 payload length：表示数据包携带的关键信息的长度   
 而下图中缺少device id，payload type， payload length，原因如下  
 1. mqtt协议连接时需要一个client id作为连接标识符，此时使用了device id作为client id。一个device只会创建一条mqtt连接，因此通过这条连接发送的数据包就隐含着device id。这种方式最多可以减少8字节的数据包开销  
-2. mqtt协议头部中有topic字段，这个字段可用来标识payload type，现在使用c,d,e分别表示command, data, event  
+2. mqtt协议头部中有topic字段，这个字段可用来标识payload type，现在使用c,s,e分别表示command, status, event  
 3. mqtt头部中的有该协议本身的payload length字段。mqtt payload length = 服务器header + pando payload length。而下图中服务器header的长度是固定的，因此从mqtt的length中可以计算出pando payload length。这样又可以减少2字节的开销    
 ![接入设备-服务器](../images/server-access.jpg)
  
@@ -19,11 +19,11 @@ payload length：表示数据包携带的关键信息的长度
 ![](../images/access-hardware.jpg)  
 
 #### Payload  
-* **指令**  
+* **命令**  
 ![](../images/command-payload.jpg)
 * **事件**  
 ![](../images/event-payload.jpg)
-* **数据**
+* **状态**
 ![](../images/data-payload.jpg)
 * **参数**  
 ![](../images/tlv.jpg)
@@ -35,7 +35,7 @@ payload length：表示数据包携带的关键信息的长度
   1. 使用device id(每个接入设备的唯一标识符，8字节长)的16进制转换成字符串作为mqtt connect的client id，用于告知服务器哪个设备上线了，并确定了接入设备与服务器之间唯一的tcp连接。  
 如device id为0x0000 0A01，则client id为“A01”，前面不补0   
   2. 数据包使用数据包类型(事件、命令、数据)作为topic。  
-在mqtt的topic采用"payload_type"表示，可取值“e”， “c”， “d”，不包含引号，分别表示event，command，data。  
+在mqtt的topic采用"payload_type"表示，可取值“e”， “c”， “s”，不包含引号，分别表示event，command，status。  
 
 * 二进制协议各字段的详细说明  
 此处以C语言为例，详细说明各字段的意义  
@@ -49,8 +49,8 @@ payload length：表示数据包携带的关键信息的长度
         };   
     ```
     * token是通过算法计算出来的校验令牌，用于防范数据包伪造，长度为16字节  
-    * flag用于一些特殊的业务，如文件传输，p2p，以及一些未来可能需要扩展的业务。  
-现在用到的场景是文件传输，当flag为1时，表示这个command携带了文件所在的uri，终端要下载此文件，并传输给子设备。  
+    * flag用于一些特殊的业务，如文件传输，p2p(点对点语音、视频流等)，以及一些未来可能需要扩展的业务。  
+现在已实现的场景是文件传输，当flag为1时，表示这个command携带了文件所在的uri，网关下载文件后传输给子设备。  
 其余flag暂时保留  
 
         | **业务**   | **FLAG** |
@@ -59,7 +59,7 @@ payload length：表示数据包携带的关键信息的长度
   2. 接入设备与硬件层设备之间的header  
       
     现在的子设备与终端之间没有一套类似MQTT这种保证通信可靠性的协议。  
-    因此在子设备通用框架设计完成前，仍然使用Pando早期的二进制数据结构，其中flags等字段未与mqtt_bin_header的统一长度，预计下个版本会进行统一。 
+    因此在子设备通用框架设计完成前，仍然使用Pando早期的二进制数据结构，其中flags等字段未与mqtt_bin_header的统一长度，预计后续版本会进行统一。 
     * 二进制数据结构头部  
     ```
     struct device_header
@@ -98,7 +98,7 @@ payload length：表示数据包携带的关键信息的长度
         TLVs     params[1]       /* 参数,必须有一个参数区，其count可以为0 */
     };
 
-    struct pando_data
+    struct pando_status
     {
         struct pando_property properties[1]; /* 属性数组,至少有一个属性 */
     };
